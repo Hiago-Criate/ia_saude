@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment - NUNCA commitar!
+.env
+.env.local
+.env.production
+
+# Vite
+.vite/
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Cache
+node_modules/.tmp/
+node_modules/.cache/
