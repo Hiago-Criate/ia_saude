@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import ReactFlow, {
   type Node,
   type Edge,
@@ -57,7 +57,7 @@ const initialNodes: Node[] = [
   // ─── INFRA NODES ───
   { id: 'infra-redis', type: 'infraNode', position: { x: 720, y: 360 }, data: { label: 'Redis + BullMQ', subtitle: 'Queue: pharmacy-quotes', color: '#EF4444' } },
   { id: 'infra-supabase', type: 'infraNode', position: { x: 720, y: 460 }, data: { label: 'Supabase (PostgreSQL)', subtitle: '12 tables', color: '#22D3EE' } },
-  { id: 'infra-gemini', type: 'infraNode', position: { x: 720, y: 560 }, data: { label: 'Google Gemini', subtitle: 'Flash + Pro models', color: '#F59E0B' } },
+  { id: 'infra-gemini', type: 'infraNode', position: { x: 720, y: 560 }, data: { label: 'Google Gemini', subtitle: 'gemini-flash-latest', color: '#F59E0B' } },
   { id: 'infra-uazapi', type: 'infraNode', position: { x: 940, y: 460 }, data: { label: 'UazAPI / WhatsApp', subtitle: 'patients + pharmacies', color: '#22C55E' } },
 ]
 
@@ -90,15 +90,26 @@ const initialEdges: Edge[] = [
 
 export function WorkflowCanvas() {
   const [selectedPromptKey, setSelectedPromptKey] = useState<string | null>(null)
-  const { data: prompts } = usePrompts()
+  const { data: prompts, isLoading: promptsLoading, error: promptsError } = usePrompts()
 
+  // Resolve o prompt completo a partir da chave selecionada
   const selectedPrompt = prompts?.find(
     (p) => `${p.agent}:${p.prompt_key}` === selectedPromptKey
-  )
+  ) ?? null
 
+  // Clique num node: abre painel se tem promptKey, fecha se não tem
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    const promptKey = node.data?.promptKey as string | null
-    if (promptKey) setSelectedPromptKey(promptKey)
+    const promptKey = (node.data?.promptKey as string | null) ?? null
+    setSelectedPromptKey(promptKey)
+  }, [])
+
+  // Tecla Escape fecha o painel
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedPromptKey(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
   }, [])
 
   return (
@@ -123,9 +134,16 @@ export function WorkflowCanvas() {
         </ReactFlow>
       </div>
 
-      {selectedPrompt && (
+      {/* Painel de prompt: abre quando selectedPromptKey está setado (independente de prompt ter carregado) */}
+      {selectedPromptKey && (
         <div className="w-96 shrink-0 border-l border-gray-800">
-          <PromptPanel prompt={selectedPrompt} onClose={() => setSelectedPromptKey(null)} />
+          <PromptPanel
+            promptKey={selectedPromptKey}
+            prompt={selectedPrompt}
+            isLoading={promptsLoading}
+            error={promptsError ? 'Backend offline — inicie o vita-core' : null}
+            onClose={() => setSelectedPromptKey(null)}
+          />
         </div>
       )}
     </div>
